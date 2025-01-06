@@ -1,0 +1,48 @@
+/* ResultPage.css */
+
+.font-roboto {
+    font-family: 'Roboto', sans-serif;
+  }
+
+.text-gray-700 {
+    color: #374151; /* Dark gray for text on light background */
+}
+
+.text-gray-600{
+  color: #4b5563
+}
+
+.text-blue-800 {
+      color: #1e3a8a; /* Dark blue */
+  }
+.text-gray-500 {
+    color: #6b7280; /* Lighter gray */
+}
+
+.bg-gray-100 {
+    background-color: #f9fafb; /* Very light gray for light mode */
+}
+.bg-white {
+    background-color: #ffffff;
+}
+
+.text-blue-600 {
+  color: #2563eb;
+}
+
+.bg-blue-500 {
+    background-color: #3b82f6;
+}
+
+.bg-blue-600 {
+    background-color: #2563eb;
+}
+
+.text-red-500{
+    color: #ef4444
+  }
+
+.container {
+    max-width: 1400px;
+    width: 100%; /* Make the container take up the whole screen */
+}
