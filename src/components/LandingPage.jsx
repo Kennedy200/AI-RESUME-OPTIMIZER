@@ -41,7 +41,7 @@ const LandingPage = () => {
         {/* Text Section */}
         <div className="lg:w-1/2">
           <h2 className="text-4xl font-bold text-blue-800 mb-6">
-            AI-Powered CV Optimization for Career Growth
+            AI-Powered Resume Optimization for Career Growth
           </h2>
           <p className="text-gray-700 text-lg mb-8">
             CareerBoost AI analyzes your Resume with cutting-edge AI, helping you identify

@@ -8,26 +8,33 @@ const UploadPage = () => {
   const [showToast, setShowToast] = useState(false);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [dragOver, setDragOver] = useState(false);
+  const [errorMessage, setErrorMessage] = useState(null);
   const navigate = useNavigate();
 
   const handleFileUpload = (file) => {
-    if (file) {
-      if (file.size > 10 * 1024 * 1024) {
-        alert("File size exceeds 10 MB limit. Please upload a smaller file.");
-        return;
-      }
+    if (!file) return;
 
-      if (!["application/pdf", "application/msword", "application/vnd.openxmlformats-officedocument.wordprocessingml.document"].includes(file.type)) {
-        alert("Unsupported file format. Please upload a PDF or Word document.");
-        return;
-      }
-
-      setUploadedFile(file);
-      setShowToast(false); // Hide toast if a file is uploaded
+    if (file.size > 10 * 1024 * 1024) {
+      setErrorMessage("File size exceeds 10 MB limit. Please upload a smaller file.");
+      return;
     }
+
+    if (
+      !["application/pdf", "application/msword", "application/vnd.openxmlformats-officedocument.wordprocessingml.document"].includes(file.type)
+    ) {
+      setErrorMessage("Unsupported file format. Please upload a PDF or Word document.");
+      return;
+    }
+
+    setUploadedFile(file);
+    setShowToast(false);
+    setErrorMessage(null);
   };
 
-  const handleFileRemove = () => setUploadedFile(null);
+  const handleFileRemove = () => {
+    setUploadedFile(null);
+    setErrorMessage(null);
+  };
 
   const handleFileDownload = () => {
     if (uploadedFile) {
@@ -51,28 +58,33 @@ const UploadPage = () => {
     }
 
     setIsAnalyzing(true);
-
+    setErrorMessage(null);
     const formData = new FormData();
-    formData.append("cvFile", uploadedFile); // Corrected: Use 'cvFile' as the field name
-
+    formData.append("cvFile", uploadedFile);
 
     try {
-        const response = await axios.post("http://localhost:5000/analyze-cv", formData, {
-          headers: { "Content-Type": "multipart/form-data" },
-        });
-  
-      console.log("[Debug] Response from backend:", response.data);
+      const response = await axios.post(
+        "http://localhost:5000/analyze-cv",
+        formData,
+        { headers: { "Content-Type": "multipart/form-data" } }
+      );
 
-      navigate("/result", { state: { analysis: response.data.feedback } });
+      console.log("[Debug] Full Response from backend:", response);
+      console.log("[Debug] Response Data from backend:", response.data);
 
+      const { overallScore, sections, recommendations, courseSuggestions } = response.data;
+
+      if (!overallScore || !sections || !recommendations || !courseSuggestions) {
+        console.warn("Incomplete feedback data received from backend.");
+        setErrorMessage("Failed to analyze the CV. Please try again.");
+        setIsAnalyzing(false);
+        return;
+      }
+
+      navigate("/result", { state: { feedback: response.data } });
     } catch (error) {
       console.error("[Error] Failed to analyze CV:", error.response?.data || error.message);
-      if(error.response?.data.message){
-           navigate("/result", { state: { error: error.response.data.message } })
-       }else{
-         alert("An error occurred while analyzing your CV. Please try again.");
-       }
-
+      setErrorMessage(error.response?.data?.message || "An error occurred while analyzing your CV. Please try again.");
     } finally {
       setIsAnalyzing(false);
     }
@@ -94,14 +106,35 @@ const UploadPage = () => {
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center p-4">
+      {/* 🔥 Stylish Hero Section */}
+      <div className="w-full max-w-4xl bg-gradient-to-br from-blue-700 to-purple-600 text-white rounded-2xl shadow-lg p-8 text-center mb-8">
+        <h1 className="text-4xl md:text-5xl font-extrabold leading-tight">
+          Is Your Resume <span className="text-yellow-300">Good Enough?</span>
+        </h1>
+        <p className="mt-3 text-lg md:text-xl font-light opacity-90">
+          Get instant AI-powered feedback with 16 key performance checks to boost your resume.
+        </p>
+        <div className="mt-5 flex justify-center">
+          <button className="bg-yellow-400 text-blue-900 px-6 py-2 text-lg font-semibold rounded-full shadow-md hover:bg-yellow-300 transition-all">
+            Try for Free 🚀
+          </button>
+        </div>
+      </div>
+
       {showToast && (
         <div className="fixed top-4 right-4 bg-red-500 text-white py-2 px-4 rounded-lg shadow-lg">
           Please upload a file before analyzing.
         </div>
       )}
+      {errorMessage && (
+        <div className="fixed top-4 left-4 bg-yellow-500 text-white py-2 px-4 rounded-lg shadow-lg">
+          {errorMessage}
+        </div>
+      )}
 
+      {/* Upload Section */}
       <div className="bg-white shadow-md rounded-lg p-6 w-full max-w-md">
-        <h3 className="text-2xl font-bold text-blue-800 mb-4 text-center">Upload Your CV</h3>
+        <h3 className="text-2xl font-bold text-blue-800 mb-4 text-center">Upload Your Resume</h3>
         <div
           className={`border-dashed border-2 rounded-lg p-6 text-center cursor-pointer 
             ${dragOver ? "bg-blue-50 border-blue-500" : "border-blue-400 hover:bg-blue-50"}`}
@@ -133,26 +166,6 @@ const UploadPage = () => {
           )}
         </div>
 
-        {uploadedFile && (
-          <div className="flex items-center justify-between mt-4 bg-blue-50 p-3 rounded-lg">
-            <div className="text-gray-700 truncate">{uploadedFile.name}</div>
-            <div className="flex space-x-4">
-              <button
-                onClick={handleFileDownload}
-                className="text-blue-600 hover:text-blue-800"
-              >
-                <FiDownload size={20} />
-              </button>
-              <button
-                onClick={handleFileRemove}
-                className="text-red-600 hover:text-red-800"
-              >
-                <FiTrash2 size={20} />
-              </button>
-            </div>
-          </div>
-        )}
-
         <div className="relative mt-6">
           {isAnalyzing ? (
             <div className="flex justify-center items-center h-12">
@@ -163,7 +176,7 @@ const UploadPage = () => {
               className="w-full bg-blue-800 text-white py-2 rounded-lg hover:bg-blue-900 focus:outline-none"
               onClick={handleAnalyzeClick}
             >
-              Analyze CV
+              Analyze Resume
             </button>
           )}
         </div>

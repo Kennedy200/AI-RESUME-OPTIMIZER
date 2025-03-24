@@ -1,174 +1,140 @@
-import React, { useEffect, useState } from "react";
-import { useLocation, useNavigate } from "react-router-dom";
-import "./ResultPage.css"; // Import the CSS file
+import React from "react";
+import { useLocation } from "react-router-dom";
+
+const formatTitle = (key) => {
+  return key
+    .replace(/([a-z])([A-Z])/g, "$1 $2")
+    .replace(/\b\w/g, (char) => char.toUpperCase())
+    .replace("Ats", "ATS")
+    .replace("Pdf", "PDF")
+    .replace("Url", "URL");
+};
+
+const getDefaultMessage = (value, key) => {
+  if (!value || (Array.isArray(value) && value.length === 0) || (typeof value === "object" && Object.keys(value).length === 0)) {
+    return key === "softSkills" || key === "missingSkills" ? "Not provided" : "No information available.";
+  }
+  return value;
+};
 
 const ResultPage = () => {
-    const location = useLocation();
-    const navigate = useNavigate();
-    const [score, setScore] = useState(null);
-    const [feedback, setFeedback] = useState(null);
-     const [error, setError] = useState(null);
+  const location = useLocation();
+  const feedback = location.state?.feedback;
 
-
-    useEffect(() => {
-        console.log("[Debug] location.state:", location.state);
-        const analysis = location.state?.analysis;
-
-       if (analysis) {
-            // Extract score using regex
-            const scoreMatch = analysis.match(/\*\*Overall Score:\*\*\s*(\d+(?:\.\d+)?)\/100/);
-             let extractedScore = 0;
-             if (scoreMatch && scoreMatch[1]) {
-                  extractedScore = parseFloat(scoreMatch[1]);
-              } else {
-                   const scoreMatch = analysis.match(/\*\*Overall Score:\*\*\s*(\d+(?:\.\d+)?)\/(\d+)/);
-                   if (scoreMatch && scoreMatch[1] && scoreMatch[2]) {
-                      extractedScore = (parseFloat(scoreMatch[1]) / parseFloat(scoreMatch[2])) * 100;
-                     } else {
-                         const scoreMatch = analysis.match(/\*\*Score:\*\*\s*(\d+(?:\.\d+)?)\/100/);
-                           if(scoreMatch && scoreMatch[1]){
-                             extractedScore = parseFloat(scoreMatch[1]);
-                             } else {
-                                const scoreMatch = analysis.match(/\*\*Score:\*\*\s*(\d+(?:\.\d+)?)\/(\d+)/);
-                                 if(scoreMatch && scoreMatch[1] && scoreMatch[2]){
-                                       extractedScore = (parseFloat(scoreMatch[1]) / parseFloat(scoreMatch[2])) * 100;
-                                  }
-                             }
-                        }
-                    }
-
-            setScore(extractedScore);
-            // Remove score and asterisks from feedback and split into list items
-           const feedbackWithoutScore = analysis.replace(/\*\*Overall Score:\*\*\s*\d+(\.\d+)?\/\d+/g, '').trim();
-            const feedbackWithoutScore2 = feedbackWithoutScore.replace(/\*\*Score:\*\*\s*\d+(\.\d+)?\/\d+/g, '').trim();
-          const feedbackWithoutAsterisks = feedbackWithoutScore2.replace(/\*\*/g, '');
-
-           // Split feedback into list items
-        const feedbackList = feedbackWithoutAsterisks.split('\n').filter(item => item.trim() !== '').map(item => item.trim());
-        setFeedback(feedbackList);
-
-
-
-         } else if(location.state?.error){
-              setError(location.state.error);
-             setFeedback(null)
-            setScore(null)
-         }
-    }, [location]);
-
-
-
-    if (error) {
-        return (
-            <div className="flex items-center justify-center min-h-screen bg-gray-100 text-gray-700">
-                <div className="text-center">
-                    <p className="text-red-500 mb-4">
-                        {error}. Please try again.
-                    </p>
-                    <button
-                        onClick={() => navigate("/upload")}
-                         className="bg-blue-500 hover:bg-blue-600 text-white py-2 px-4 rounded-lg transition duration-300"
-                     >
-                        Upload CV
-                    </button>
-                </div>
-            </div>
-        );
-    }
-
-    if (!feedback) {
-        return (
-            <div className="flex items-center justify-center min-h-screen bg-gray-100 text-gray-700">
-                <div className="text-center">
-                    <p className="text-gray-500 mb-4">
-                        No analysis data available. Please upload a CV first.
-                    </p>
-                    <button
-                       onClick={() => navigate("/upload")}
-                        className="bg-blue-500 hover:bg-blue-600 text-white py-2 px-4 rounded-lg transition duration-300"
-                    >
-                        Upload CV
-                    </button>
-                </div>
-            </div>
-        );
-    }
-
-      // Function to extract YouTube links from courses
-     const extractYouTubeLinks = (text) => {
-         const courseRegex = /\*\*(.*?):\*\*\s(.*?)(?:\s+Courses from|\s+Consider learning its fundamentals through online courses\.)(.*?)(?=\n\*\*\w)/gs;
-        const courses = [];
-      let match;
-
-      while ((match = courseRegex.exec(text)) !== null) {
-            const [, title, , description] = match;
-           const youtubeMatch = description.match(/(https?:\/\/[^\s]+?youtube\.com\S*)/);
-           courses.push({
-               title: title.trim(),
-               description: description.trim(),
-                youtubeLink: youtubeMatch ? youtubeMatch[1] : null,
-            });
-       }
-
-         return courses;
-    };
-    const courses = extractYouTubeLinks(feedback.join('\n')); // Join the feedback for correct regex
-
+  if (!feedback) {
     return (
-        <div className="min-h-screen bg-gray-100 text-gray-700 font-roboto flex items-center justify-center p-4">
-           <div className="container mx-auto p-6 w-full max-w-4xl">
-              {/* Score Card */}
-              <div className="bg-white rounded-lg shadow-md p-6 mb-8">
-                   <h2 className="text-3xl font-bold text-blue-600 mb-4 text-center">CV Analysis Result</h2>
-                  </div>
-
-              {/* Feedback Card */}
-               <div className="bg-white rounded-lg shadow-md p-6 mb-8">
-                      <h3 className="text-2xl font-semibold text-blue-600 mb-4">Feedback</h3>
-                       <ol className="text-gray-600 text-lg leading-relaxed list-decimal pl-5">
-                           {feedback.map((item, index) => (
-                              <li key={index} className="mb-2">
-                                {item}
-                              </li>
-                           ))}
-                       </ol>
-                 </div>
-
-                {/* Course Suggestions Card */}
-                   {courses.length > 0 && (
-                      <div className="bg-white rounded-lg shadow-md p-6 mb-8">
-                            <h3 className="text-2xl font-semibold text-blue-600 mb-4">Course Suggestions</h3>
-                                <ul className="pl-5">
-                                  {courses.map((course, index) => (
-                                      <li key={index} className="mb-3">
-                                           <h5 className="text-lg font-medium text-gray-700">{course.title}</h5>
-                                              <p className="text-gray-500 leading-relaxed">{course.description}</p>
-                                                {course.youtubeLink && (
-                                                   <a
-                                                        href={course.youtubeLink}
-                                                       target="_blank"
-                                                      rel="noopener noreferrer"
-                                                        className="text-blue-500 hover:underline block mt-1"
-                                                    >
-                                                        Watch on YouTube
-                                                  </a>
-                                               )}
-                                       </li>
-                                     ))}
-                                 </ul>
-                            </div>
-                      )}
-                <div className="text-center mt-8">
-                     <button
-                        onClick={() => navigate("/upload")}
-                        className="bg-blue-500 hover:bg-blue-600 text-white py-2 px-4 rounded-lg transition duration-200"
-                    >
-                        Upload Another CV
-                    </button>
-                  </div>
-            </div>
-        </div>
+      <div className="flex items-center justify-center h-screen bg-gray-100 px-6">
+        <p className="text-red-500 text-2xl font-bold text-center">
+          No feedback data available. Please try uploading your CV again.
+        </p>
+      </div>
     );
+  }
+
+  const { overallScore, sections, recommendations, courseSuggestions } = feedback;
+
+  return (
+    <div className="p-6 md:p-12 bg-gray-50 min-h-screen flex justify-center">
+      <div className="w-full max-w-4xl">
+        {/* Title */}
+        <h1 className="text-center text-4xl font-bold text-blue-700 mb-12">
+          RESUME ANALYSIS RESULT
+        </h1>
+
+        {/* Overall Score Section */}
+        <div className="text-center mb-12">
+          <h2 className="text-3xl font-semibold text-gray-800 mb-4">Overall Score</h2>
+          <div className="relative w-3/4 md:w-1/2 mx-auto bg-gray-300 h-8 rounded-full overflow-hidden">
+            <div
+              className="absolute top-0 left-0 bg-blue-500 h-full transition-all duration-500"
+              style={{ width: `${overallScore || 0}%` }}
+            ></div>
+          </div>
+          <p className="mt-3 text-xl font-medium text-gray-800">
+            {overallScore ? `${overallScore}%` : "No score available."}
+          </p>
+        </div>
+
+        {/* Sections */}
+        <div className="space-y-10">
+          {sections &&
+            Object.entries(sections).map(([key, value]) => {
+              const formattedTitle = formatTitle(key);
+              const defaultValue = getDefaultMessage(value, key);
+
+              return (
+                <div key={key} className="bg-white p-6 shadow-lg rounded-lg">
+                  <h3 className="text-2xl font-semibold mb-3 text-gray-900">{formattedTitle}</h3>
+
+                  <div className="text-lg text-gray-700 break-words overflow-hidden">
+                    {typeof defaultValue === "string" ? (
+                      <p className="truncate">{defaultValue}</p>
+                    ) : Array.isArray(defaultValue) ? (
+                      <ul className="list-disc ml-6">
+                        {defaultValue.length > 0 ? (
+                          defaultValue.map((item, index) => <li key={index} className="truncate">{item}</li>)
+                        ) : (
+                          <li>No information available.</li>
+                        )}
+                      </ul>
+                    ) : typeof defaultValue === "object" ? (
+                      <ul className="list-disc ml-6">
+                        {Object.entries(defaultValue).length > 0 ? (
+                          Object.entries(defaultValue).map(([subKey, subValue]) => (
+                            <li key={subKey} className="truncate font-medium">
+                              {formatTitle(subKey)}: <span className="text-gray-600">{String(subValue)}</span>
+                            </li>
+                          ))
+                        ) : (
+                          <li>No relevant data available.</li>
+                        )}
+                      </ul>
+                    ) : (
+                      <p>No information available.</p>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+        </div>
+
+        {/* Recommendations Section */}
+        {recommendations?.length > 0 && (
+          <div className="mt-12 bg-white p-6 shadow-lg rounded-lg">
+            <h3 className="text-2xl font-semibold mb-3 text-gray-900">Recommendations</h3>
+            <ul className="list-disc ml-6 text-lg text-gray-700">
+              {recommendations.map((recommendation, index) => (
+                <li key={index} className="truncate">{recommendation}</li>
+              ))}
+            </ul>
+          </div>
+        )}
+
+        {/* Course Suggestions Section */}
+        {courseSuggestions?.length > 0 && (
+          <div className="mt-12 bg-white p-6 shadow-lg rounded-lg">
+            <h3 className="text-2xl font-semibold mb-3 text-gray-900">Course Suggestions</h3>
+            <ul className="list-disc ml-6 text-lg text-gray-700">
+              {courseSuggestions.map((course, index) => (
+                <li key={index} className="mb-4">
+                  <p className="font-bold text-lg truncate">{course.title} - {course.platform}</p>
+                  <p className="text-gray-600 truncate">{course.description}</p>
+                  <a
+                    href={course.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-blue-500 hover:underline"
+                  >
+                    View Course
+                  </a>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+      </div>
+    </div>
+  );
 };
 
 export default ResultPage;
