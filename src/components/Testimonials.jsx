@@ -1,7 +1,7 @@
 import React from "react";
 import toast, { Toaster } from "react-hot-toast";
-import Profile1 from "../assets/Profile1.jpg";
-import Profile2 from "../assets/Profile2.jpg";
+import Profile1 from "../assets/profile1.jpg";
+import Profile2 from "../assets/profile2.jpg";
 
 const Testimonials = () => {
   const handleSeeAllStories = () => {
